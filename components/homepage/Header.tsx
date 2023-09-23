@@ -42,7 +42,7 @@ export default function Header({
         alt="תמונה של הרב ברוך אפרתי"
         src={bgImg.src}
         fill
-        quality={80}
+        quality={100}
         className="object-cover z-[0]"
       />
 

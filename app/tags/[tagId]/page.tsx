@@ -6,7 +6,7 @@ import { LOAD_CHUNK_SIZE } from "@/utils/GLOBAL_CONSTS"
 import loadQuestions from "@/utils/loadQuestions"
 
 type tagsPageProps = {
-  params: { tagName: string }
+  params: { tagId: string }
 }
 
 export default function tagsPage({ params }: tagsPageProps) {
@@ -20,7 +20,7 @@ export default function tagsPage({ params }: tagsPageProps) {
       .select()
       .eq("answered", true)
       .eq("private", false)
-      .contains("tags", [decodeURIComponent(params.tagName)])
+      .contains("tags", [decodeURIComponent(params.tagId)])
       .order("id", { ascending: false })
       .limit(LOAD_CHUNK_SIZE)
   }
@@ -33,7 +33,7 @@ export default function tagsPage({ params }: tagsPageProps) {
       .eq("answered", true)
       .eq("private", false)
       .order("id", { ascending: false })
-      .contains("tags", [decodeURIComponent(params.tagName)])
+      .contains("tags", [decodeURIComponent(params.tagId)])
       .range(questions.length, questions.length + LOAD_CHUNK_SIZE - 1)
   }
 

@@ -38,8 +38,8 @@ export default async function QuestionPage({
       <div className="flex flex-wrap gap-y-2 items-center justify-between gap-x-8">
         <h2 className="text-xl font-bold">{question.title}</h2>
         <div className="flex flex-wrap gap-2 justify-end ms-auto">
-          {question?.tags?.map((tag) => {
-            return <Tag tagName={tag} key={tag} action="navigate" />
+          {question?.tags?.map((tagId) => {
+            return <Tag tagId={tagId} key={tagId} action="navigate" />
           })}
         </div>
       </div>

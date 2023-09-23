@@ -9,7 +9,8 @@ import supabase from "@/utils/supabase"
 export default function Ask() {
   const router = useRouter()
   const [isSending, setIsSending] = useState<boolean>(false)
-  const [addedTags, setAddedTags] = useState<string[]>([])
+  const [isLoadingNewTag, setIsLoadingNewTag] = useState<boolean>(false)
+  const [addedTagsIds, setAddedTagsIds] = useState<string[]>([])
   const [newTag, setNewTag] = useState("")
   const titleRef = useRef<HTMLInputElement>(null)
   const fullQuestionRef = useRef<HTMLTextAreaElement>(null)
@@ -43,42 +44,67 @@ export default function Ask() {
         <form
           onSubmit={(e) => {
             e.preventDefault()
-            if (newTag.trim() !== "") {
-              setAddedTags((prev) => [...prev, newTag])
-              setNewTag("")
+            if (newTag.trim().length) {
+              setIsLoadingNewTag(true)
+              supabase
+                .from("tags")
+                .select("*")
+                .eq("name", newTag)
+                .single()
+                .then((res) => {
+                  if (res.error === null && res.data) {
+                    setAddedTagsIds((prev) => [...prev, res.data.id])
+                    setIsLoadingNewTag(false)
+                  } else {
+                    supabase
+                      .from("tags")
+                      .insert({ name: newTag })
+                      .select("*")
+                      .single()
+                      .then((res) => {
+                        setAddedTagsIds((prev) => [...prev, res.data.id])
+                        setIsLoadingNewTag(false)
+                      })
+                  }
+                  setNewTag(``)
+                })
             }
           }}
-          className="flex gap-4"
+          className="flex gap-2"
         >
           <input
-            autoComplete="off"
             type="text"
+            autoComplete="off"
             name="newTag"
-            id="newTag"
             value={newTag}
-            placeholder="הוסף תגית"
+            id="newTag"
+            placeholder="הוסף תגית חדשה"
             className="input grow"
             onInput={(e) => {
               setNewTag(e.currentTarget.value)
             }}
           />
-          <button
-            type="submit"
-            className="material-symbols-outlined bg-blue-400 rounded-lg grid place-items-center aspect-square hover:bg-blue-500"
-          >
-            add
-          </button>
+          {isLoadingNewTag ? (
+            <Spinner />
+          ) : (
+            <button
+              type="submit"
+              className="material-symbols-outlined aspect-square bg-blue-400 hover:bg-blue-500 text-white grid place-items-center rounded-lg"
+            >
+              add
+            </button>
+          )}
         </form>
 
         {/* added tags */}
         <div className="flex gap-2 flex-wrap">
-          {addedTags.map((tag) => {
+          {addedTagsIds.map((tag) => {
             return (
               <Tag
-                tagName={tag}
+                tagId={tag}
                 key={tag}
                 action={() => {
-                  setAddedTags((prev) => prev.filter((t) => t !== tag))
+                  setAddedTagsIds((prev) => prev.filter((t) => t !== tag))
                   setNewTag("")
                 }}
               />
@@ -107,7 +133,7 @@ export default function Ask() {
                     fullquestion: fullQuestionRef?.current?.value,
                     private: false,
                     answered: false,
-                    tags: addedTags,
+                    tags: addedTagsIds,
                   })
                   .then(() => {
                     setErr("ההודעה נשלחה בהצלחה")

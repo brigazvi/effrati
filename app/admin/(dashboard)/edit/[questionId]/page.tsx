@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import supabase from "@/utils/supabase"
 import Popup from "@/components/admin/Popup"
+import Tag from "@/components/Tag"
 
 export default function EditPage({
   params,
@@ -14,10 +15,11 @@ export default function EditPage({
   const [title, setTitle] = useState<string>("")
   const [fullQuestion, setFullQuestion] = useState<string>("")
   const [answer, setAnswer] = useState<string>("")
-  const [addedTags, setAddedTags] = useState<string[]>([])
+  const [addedTagsIds, setAddedTagsIds] = useState<string[]>([])
   const [newTag, setNewTag] = useState<string>("")
   const [err, setErr] = useState<string>("")
   const [isSending, setIsSending] = useState<boolean>(false)
+  const [isLoadingNewTag, setIsLoadingNewTag] = useState(false)
   const [popup, setPopup] = useState<boolean>(false)
 
   useEffect(() => {
@@ -29,7 +31,7 @@ export default function EditPage({
       .then((res) => {
         setTitle(res.data.title)
         setFullQuestion(res.data.fullquestion)
-        setAddedTags(res.data.tags)
+        setAddedTagsIds(res.data.tags || [])
         setAnswer(res.data.answer)
       })
   }, [])
@@ -113,8 +115,31 @@ export default function EditPage({
         <form
           onSubmit={(e) => {
             e.preventDefault()
-            setAddedTags((prev) => [...prev, newTag])
-            setNewTag(``)
+            if (newTag.trim().length) {
+              setIsLoadingNewTag(true)
+              supabase
+                .from("tags")
+                .select("*")
+                .eq("name", newTag)
+                .single()
+                .then((res) => {
+                  if (res.error === null && res.data) {
+                    setAddedTagsIds((prev) => [...prev, res.data.id])
+                    setIsLoadingNewTag(false)
+                  } else {
+                    supabase
+                      .from("tags")
+                      .insert({ name: newTag })
+                      .select("*")
+                      .single()
+                      .then((res) => {
+                        setAddedTagsIds((prev) => [...prev, res.data.id])
+                        setIsLoadingNewTag(false)
+                      })
+                  }
+                  setNewTag(``)
+                })
+            }
           }}
           className="flex gap-2"
         >
@@ -130,23 +155,26 @@ export default function EditPage({
               setNewTag(e.currentTarget.value)
             }}
           />
-          <button
-            type="submit"
-            className="material-symbols-outlined aspect-square bg-blue-400 hover:bg-blue-500 text-white grid place-items-center rounded-lg"
-          >
-            add
-          </button>
+          {isLoadingNewTag ? (
+            <Spinner />
+          ) : (
+            <button
+              type="submit"
+              className="material-symbols-outlined aspect-square bg-blue-400 hover:bg-blue-500 text-white grid place-items-center rounded-lg"
+            >
+              add
+            </button>
+          )}
         </form>
         <div className="flex gap-2">
-          {addedTags.map((tag) => (
-            <span
-              className="tag"
-              onClick={() =>
-                setAddedTags((prev) => prev.filter((t) => t !== tag))
+          {addedTagsIds.map((tagId) => (
+            <Tag
+              action={() =>
+                setAddedTagsIds((prev) => prev.filter((t) => t !== tagId))
               }
-            >
-              {tag}
-            </span>
+              tagId={tagId}
+              key={tagId}
+            />
           ))}
         </div>
 
@@ -166,7 +194,7 @@ export default function EditPage({
                     .from("questions")
                     .update({
                       title,
-                      tags: addedTags,
+                      tags: addedTagsIds,
                       fullquestion: fullQuestion,
                       answer,
                       answered: true,
